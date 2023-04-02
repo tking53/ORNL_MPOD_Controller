@@ -26,9 +26,10 @@ __snmp_base_options = ' -v 2c -M /usr/share/snmp/mibs -m +WIENER-CRATE-MIB '
 __IP = ' 192.168.4.2 '
 __snmpget_command = 'snmpget ' + __snmpStripAll +__snmp_base_options + __IP
 __snmpBULKget_command = 'snmpbulkget ' + __snmpStripAll + __snmp_base_options + __IP
-__NumberOfModules = int()
+__ListOfModIndexs = list()
 __NumberOfChansPerMod = list()
 __NumberOfChannels = int()
+__NumberOfModules = int()
 ##Look at end of File for auto run commands
 
 def __MakeSnmpSetCommand(community):
@@ -40,8 +41,8 @@ def __SetIPOfMpod(ip_to_set):
 
 def __PrintBulks(par):
     print('test bullk returns')
-    print(pxp.run(__snmpBULKget_command + " -c private " + str(par)).decode())
-    __TestVar = pxp.run(__snmpBULKget_command + " -c private " + str(par)).decode().strip().split("\r\n")
+    print(pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels) + " -c private " + str(par)).decode())
+    __TestVar = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels) + " -c private " + str(par)).decode().strip().split("\r\n")
     print("\n\n\n Now reading from var")
     print(str(__TestVar))
     for i,it in enumerate(__TestVar):
@@ -50,14 +51,30 @@ def __PrintBulks(par):
 ####################################################
 
 def ReadNumberOfModuleAndChannels():
-    global __NumberOfModules
+    global __ListOfModIndexs
     global __NumberOfChansPerMod
     global __NumberOfChannels
+    global __NumberOfModules
     __NumberOfModules = eval(pxp.run('snmpwalk ' + __snmp_base_options + __snmpStripAll + ' -c guru ' + __IP + ' moduleNumber'))
-    for i in range(int(__NumberOfModules)):
-        test = pxp.run('snmpwalk ' + __snmp_base_options + __snmpStripAll + ' -c guru ' + __IP + ' moduleDescription.ma' + str(i)).decode().split(", ")[2]
-        __NumberOfChansPerMod.append(test)
-        __NumberOfChannels += int(test)
+    __ListOfModIndexs= [ int(x[2]) for x in pxp.run('snmpwalk ' + __snmp_base_options + __snmpStripAll + ' -c guru ' + __IP + ' moduleIndex').decode().rstrip("\r\n").split("\r\n") ]
+    
+    if __NumberOfModules != len(__ListOfModIndexs):
+        print("ERROR:: Number of modules reported by snmp for \"moduleNumber\" != the number detected through \"moduleIndex\"")
+        return 1
+    # print(__ListOfModIndexs)
+    
+    for i in range(__ListOfModIndexs[-1]+1):
+        if i not in __ListOfModIndexs:
+            __NumberOfChansPerMod.append(None)
+        else:
+            modDes=pxp.run('snmpwalk ' + __snmp_base_options + __snmpStripAll + ' -c guru ' + __IP + ' moduleDescription.ma' + str(i)).decode().split(", ")[2]
+            __NumberOfChansPerMod.append(modDes)
+            __NumberOfChannels +=int(modDes)
+
+    # for i in range(int(__NumberOfModules)):
+    #     test = pxp.run('snmpwalk ' + __snmp_base_options + __snmpStripAll + ' -c guru ' + __IP + ' moduleDescription.ma' + str(i)).decode().split(", ")[2]
+    #     __NumberOfChansPerMod.append(test)
+    #     __NumberOfChannels += int(test)
 
 def GetNumberOfChanPerModule():
     for i,val in enumerate(__NumberOfChansPerMod):
@@ -138,112 +155,175 @@ def set_current(mod: str, chan: str, current):
     print(eval(pxp.run(__MakeSnmpSetCommand('guru') +
           'outputCurrent.' + mpodID + ' F '+str(current))))
 
-def set_on_off_singlechannel(mod: str, chan: str, onOff):
+def set_on_off(mod: str, chan: str, onOff):
     mpodID = GenerateMpodID(mod, chan)
     print('\033[33m\033[1m' + pxp.run(__MakeSnmpSetCommand('guru') + ' outputSwitch.'+mpodID+' i '+str(onOff)).decode())
 
 def set_on_off_all(onOff):
-    for id in range(__NumberOfModules):
+    for id in __ListOfModIndexs:
         for chan in range(int(__NumberOfChansPerMod[id])):
             mpodID = GenerateMpodID(id,chan)
             print("[" + mpodID + "] " + pxp.run(__MakeSnmpSetCommand('guru') + ' outputSwitch.' + mpodID+' i '+str(onOff)).strip().decode())
 
-def set_rise_rate_all(rate):
-    for id in range(__NumberOfModules):
+def set_ramp_all(rate):
+    for id in __ListOfModIndexs:
         for chan in range(int(__NumberOfChansPerMod[id])):
             mpodID = GenerateMpodID(id,chan)
             print("[" + mpodID + "] " + pxp.run(__MakeSnmpSetCommand('guru') +  ' outputVoltageRiseRate.'+ mpodID+' F '+str(rate)).decode())
 
+def set_ramp(mod: str, chan: str, rate):
+    mpodID = GenerateMpodID(mod,chan)
+    print("[" + mpodID + "] " + pxp.run(__MakeSnmpSetCommand('guru') +  ' outputVoltageRiseRate.'+ mpodID+' F '+str(rate)).decode())
+
 def set_current_limit_all(limit):
-    for id in range(__NumberOfModules):
+    for id in __ListOfModIndexs:
         for chan in range(int(__NumberOfChansPerMod[id])):
             mpodID = GenerateMpodID(id,chan)
             print("[" + mpodID + "] " + pxp.run(__MakeSnmpSetCommand('guru') +  ' outputCurrent.'+ mpodID+' F '+str(limit)).decode())           
 
-def __Old_get_system_status():
-    smallColWidth=11
-    largeColWidth=21
-    fullColWidth=smallColWidth*2 + largeColWidth*4
-    if __GetCrateSysMainStatSTR().lower() == "on":
-        print("\n" + f"{'MPOD Controller IP Address::'+__resetCode+ __yellowCode+__IP.strip().center(len(__IP.strip())+4)+__resetCode: ^{fullColWidth+len(__yellowCode)+len(__resetCode) + len(__IP.strip())}}",end="\n")
+def set_current_limit(mod: str, chan: str, limit):
+    mpodID = GenerateMpodID(mod, chan)
+    print("[" + mpodID + "] " + pxp.run(__MakeSnmpSetCommand('guru') +  ' outputCurrent.'+ mpodID+' F '+str(limit)).decode())   
 
-        print(f"{'MPOD Chassis Switch Status::'+__resetCode+__greenCode+'ON'.center(len(__IP.strip())+4)+__resetCode: ^{fullColWidth+len(__greenCode)+len(__resetCode) + len(__IP.strip())}}",end="\n\n")
+# def __Old_get_system_status():
+#     smallColWidth=11
+#     largeColWidth=21
+#     fullColWidth=smallColWidth*2 + largeColWidth*4
+#     if __GetCrateSysMainStatSTR().lower() == "on":
+#         print("\n" + f"{'MPOD Controller IP Address::'+__resetCode+ __yellowCode+__IP.strip().center(len(__IP.strip())+4)+__resetCode: ^{fullColWidth+len(__yellowCode)+len(__resetCode) + len(__IP.strip())}}",end="\n")
+
+#         print(f"{'MPOD Chassis Switch Status::'+__resetCode+__greenCode+'ON'.center(len(__IP.strip())+4)+__resetCode: ^{fullColWidth+len(__greenCode)+len(__resetCode) + len(__IP.strip())}}",end="\n\n")
         
-        print(f"{__underlineCode}{'[CHAN]': ^{smallColWidth}}{'|'}{'[STATUS]': ^{smallColWidth}}{'|'}{'[MEASURED VOLTAGE]': ^{largeColWidth}}{'|'}{'[SET VOLTAGE]': ^{largeColWidth}}{'|'}{'[MEASURED CURRENT]': ^{largeColWidth}}{'|'}{'[CURRENT TRIP]': ^{largeColWidth}}{__resetCode}")
-        print("")
-        for id in range(__NumberOfModules):
-            for chan in range(int(__NumberOfChansPerMod[id])):
-                mpodID = GenerateMpodID(id,chan)
-                retvalue = pxp.run(__snmpget_command + ' -c public outputSwitch.' + mpodID).strip().decode().lower()
-                colorCode=""
-                if retvalue == "off":
-                    colorCode=__redCode
-                elif retvalue == "on":
-                    colorCode=__greenCode
-                
-                chanStr = '[' + mpodID + ']'
-                statStr = pxp.run(__snmpget_command + ' -c public outputSwitch.' + mpodID).strip().decode().upper() 
-                
-                termVolStr = '{:.2f}'.format(round(float(pxp.run(__snmpget_command + ' -c public outputMeasurementSenseVoltage.' + mpodID).strip().decode().upper()),2)) + " V"
+#         print(f"{__underlineCode}{'[CHAN]': ^{smallColWidth}}{'|'}{'[STATUS]': ^{smallColWidth}}{'|'}{'[MEASURED VOLTAGE]': ^{largeColWidth}}{'|'}{'[SET VOLTAGE]': ^{largeColWidth}}{'|'}{'[MEASURED CURRENT]': ^{largeColWidth}}{'|'}{'[CURRENT TRIP]': ^{largeColWidth}}{__resetCode}")
+#         print("")
 
-                voltageSetPoint = '{:.2f}'.format(round(float(pxp.run(__snmpget_command + ' -c public outputVoltage.' + mpodID).strip().decode().upper()),2)) + " V"
+#         for id in __ListOfModIndexs:
+#             for chan in range(int(__NumberOfChansPerMod[id])):
+#                 mpodID = GenerateMpodID(id, chan)
+#                 retvalue = pxp.run(
+#                     __snmpget_command + ' -c public outputSwitch.' + mpodID).strip().decode().lower()
+#                 colorCode = ""
+#                 if retvalue == "off":
+#                     colorCode = __redCode
+#                 elif retvalue == "on":
+#                     colorCode = __greenCode
 
-                termCurStr = '{:.3f}'.format(m.ceil(float(pxp.run(__snmpget_command + ' -c public outputMeasurementCurrent.' + mpodID).strip().decode().upper())*1000*1000)) + " " + chr(956) +"A"
-               
-                currentTripPoint = '{:.3f}'.format(m.ceil(float(pxp.run(__snmpget_command + ' -c public outputCurrent.' + mpodID).strip().decode().upper())*1000*1000)) + " " + chr(956) +"A"
+#                 chanStr = '[' + mpodID + ']'
+#                 statStr = pxp.run(
+#                     __snmpget_command + ' -c public outputSwitch.' + mpodID).strip().decode().upper()
 
-                print(f"{chanStr : ^{smallColWidth}}{'|'}{colorCode}{statStr : ^{smallColWidth}}{__resetCode}{'|'}{termVolStr : ^{largeColWidth}}{'|'}{voltageSetPoint  :^{largeColWidth}}{'|'}{termCurStr  :^{largeColWidth}}{'|'}{currentTripPoint  :^{largeColWidth}}")
-            print("-".center(fullColWidth+len(__underlineCode),"-"))
-    else:
-        print("Crate's sysMainSwitch is "+ __redCode + "OFF" + __resetCode)
+#                 termVolStr = '{:.2f}'.format(round(float(pxp.run(
+#                     __snmpget_command + ' -c public outputMeasurementSenseVoltage.' + mpodID).strip().decode().upper()), 2)) + " V"
 
+#                 voltageSetPoint = '{:.2f}'.format(round(float(pxp.run(
+#                     __snmpget_command + ' -c public outputVoltage.' + mpodID).strip().decode().upper()), 2)) + " V"
+
+#                 termCurStr = '{:.3f}'.format(m.ceil(float(pxp.run(
+#                     __snmpget_command + ' -c public outputMeasurementCurrent.' + mpodID).strip().decode().upper())*1000*1000)) + " " + chr(956) + "A"
+
+#                 currentTripPoint = '{:.3f}'.format(m.ceil(float(pxp.run(
+#                     __snmpget_command + ' -c public outputCurrent.' + mpodID).strip().decode().upper())*1000*1000)) + " " + chr(956) + "A"
+
+#                 print(f"{chanStr : ^{smallColWidth}}{'|'}{colorCode}{statStr : ^{smallColWidth}}{__resetCode}{'|'}{termVolStr : ^{largeColWidth}}{'|'}{voltageSetPoint  :^{largeColWidth}}{'|'}{termCurStr  :^{largeColWidth}}{'|'}{currentTripPoint  :^{largeColWidth}}")
+#             print("-".center(fullColWidth+len(__underlineCode), "-"))
+#     else:
+#         print("Crate's sysMainSwitch is " + __redCode + "OFF" + __resetCode)
+
+# @profile
 def get_system_status():
     smallColWidth=11
     largeColWidth=21
-    fullColWidth=smallColWidth*2 + largeColWidth*4
+    fullColWidth=smallColWidth*3 + largeColWidth*4
     if __GetCrateSysMainStatSTR().lower() == "on":
-        TermVoltageList = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels)+" -c private " + str("outputMeasurementSenseVoltage")).decode().strip().split("\r\n")
-        TermCurrentList = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels)+" -c private " + str("outputMeasurementCurrent")).decode().strip().split("\r\n")
-        SetVoltage = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels)+" -c private " + str("outputVoltage")).decode().strip().split("\r\n")
-        SetCurrent = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels)+" -c private " + str("outputCurrent")).decode().strip().split("\r\n")
-        ChannelStatus = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels)+" -c private " + str("outputSwitch")).decode().strip().split("\r\n")
-
-        
         print("\n" + f"{'MPOD Controller IP Address::'+__resetCode+ __yellowCode+__IP.strip().center(len(__IP.strip())+4)+__resetCode: ^{fullColWidth+len(__yellowCode)+len(__resetCode) + len(__IP.strip())}}",end="\n")
 
         print(f"{'MPOD Chassis Switch Status::'+__resetCode+__greenCode+'ON'.center(len(__IP.strip())+4)+__resetCode: ^{fullColWidth+len(__greenCode)+len(__resetCode) + len(__IP.strip())}}",end="\n\n")
         
-        print(f"{__underlineCode}{'[CHAN]': ^{smallColWidth}}{'|'}{'[STATUS]': ^{smallColWidth}}{'|'}{'[MEASURED VOLTAGE]': ^{largeColWidth}}{'|'}{'[SET VOLTAGE]': ^{largeColWidth}}{'|'}{'[MEASURED CURRENT]': ^{largeColWidth}}{'|'}{'[CURRENT TRIP]': ^{largeColWidth}}{__resetCode}")
-        print("")
+        print(f"{__underlineCode}{'[CHAN]': ^{smallColWidth}}{'|'}{'[STATUS]': ^{smallColWidth}}{'|'}{'[MEASURED VOLTAGE]': ^{largeColWidth}}{'|'}{'[SET VOLTAGE]': ^{largeColWidth}}{'|'}{'[MEASURED CURRENT]': ^{largeColWidth}}{'|'}{'[CURRENT TRIP]': ^{largeColWidth}}{'|'}{'[RAMP]': ^{smallColWidth}}{__resetCode}")
+        # print("")
 
-        for id in range(__NumberOfModules):
+        for id in __ListOfModIndexs:
+            module_output_string = str()
             for chan in range(int(__NumberOfChansPerMod[id])):
-                mpodID = GenerateMpodID(id,chan)
-                chanPosInLists = int(id) * int(__NumberOfChansPerMod[id]) + int(chan)
-                retvalue = pxp.run(__snmpget_command + ' -c public outputSwitch.' + mpodID).strip().decode().lower()
-                colorCode=""
-                if retvalue == "off":
-                    colorCode=__redCode
-                elif retvalue == "on":
-                    colorCode=__greenCode
+                mpodID = GenerateMpodID(id, chan)
+                mpodSnmpIndex = str(int(mpodID.lstrip("u"))+1)
+                chanData = pxp.run(__snmpget_command + "-c guru outputIndex." + mpodSnmpIndex + " outputSwitch." + mpodSnmpIndex + " outputMeasurementSenseVoltage." + mpodSnmpIndex + " outputVoltage." + mpodSnmpIndex + " outputMeasurementCurrent." + mpodSnmpIndex + " outputCurrent." + mpodSnmpIndex + " outputVoltageRiseRate." + mpodSnmpIndex + " outputVoltageFallRate." + mpodSnmpIndex).decode().split("\r\n")
                 
-                # print(mpodID + "    " + str(chanPosInLists) +  "   " + str(ChannelStatus))
-                chanStr = '[' + mpodID + ']'
-              
-                statStr = ChannelStatus[chanPosInLists].upper() 
+                chanStr = '[' + chanData[0] + ']' 
+                statStr = chanData[1].upper()
+                colorCode = ""
+                if statStr == "OFF":
+                    colorCode = __redCode
+                elif statStr == "ON":
+                    colorCode = __greenCode
                 
-                termVolStr = '{:.2f}'.format(round(float(TermVoltageList[chanPosInLists]),2)) + " V"
+                termVolStr = '{:.2f}'.format(round(float(chanData[2]), 2))+ " V"
+                voltageSetPointStr = '{:.2f}'.format(round(float(chanData[3]), 2)) + " V"
+                
+                # chr(956) is greak mu
+                termCurStr = '{:.3f}'.format(m.ceil(float(chanData[4]) * 1000 * 1000)) + " " + chr(956) + "A"
+                currentTripPointStr = '{:.3f}'.format(m.ceil(float(chanData[5])* 1000 * 1000)) + " " + chr(956) + "A"
 
-                voltageSetPoint = '{:.2f}'.format(round(float(SetVoltage[chanPosInLists]),2)) + " V"
+                riseFallRateStr = str(round(float(chanData[6]))) + " V/s"
 
-                termCurStr = '{:.3f}'.format(m.ceil(float(TermCurrentList[chanPosInLists])*1000*1000)) + " " + chr(956) +"A"
+                module_output_string += "\n" + \
+                    f"{chanStr : ^{smallColWidth}}{'|'}{colorCode}{statStr : ^{smallColWidth}}{__resetCode}{'|'}{termVolStr : ^{largeColWidth}}{'|'}{voltageSetPointStr  :^{largeColWidth}}{'|'}{termCurStr  :^{largeColWidth}}{'|'}{currentTripPointStr  :^{largeColWidth}}{'|'}{riseFallRateStr  :^{smallColWidth}}"
             
-                currentTripPoint = '{:.3f}'.format(m.ceil(float(SetCurrent[chanPosInLists])*1000*1000)) + " " + chr(956) +"A"
-
-                print(f"{chanStr : ^{smallColWidth}}{'|'}{colorCode}{statStr : ^{smallColWidth}}{__resetCode}{'|'}{termVolStr : ^{largeColWidth}}{'|'}{voltageSetPoint  :^{largeColWidth}}{'|'}{termCurStr  :^{largeColWidth}}{'|'}{currentTripPoint  :^{largeColWidth}}")
-            print("-".center(fullColWidth+len(__underlineCode),"-"))
+            print(module_output_string + "\r\n" +"-".center(fullColWidth+len(__underlineCode), "-"),end="")
+        print("")
     else:
-        print("Crate's sysMainSwitch is "+ __redCode + "OFF" + __resetCode)
+        print("Crate's sysMainSwitch is " + __redCode + "OFF" + __resetCode)
+
+
+
+# def __bluk_status_notworking():
+#     smallColWidth=11
+#     largeColWidth=21
+#     fullColWidth=smallColWidth*2 + largeColWidth*4
+#     if __GetCrateSysMainStatSTR().lower() == "on":
+#         TermVoltageList = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels)+" -c private " + str("outputMeasurementSenseVoltage")).decode().strip().split("\r\n")
+#         TermCurrentList = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels)+" -c private " + str("outputMeasurementCurrent")).decode().strip().split("\r\n")
+#         SetVoltage = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels)+" -c private " + str("outputVoltage")).decode().strip().split("\r\n")
+#         SetCurrent = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels)+" -c private " + str("outputCurrent")).decode().strip().split("\r\n")
+#         ChannelStatus = pxp.run(__snmpBULKget_command + "-Cr" + str(__NumberOfChannels)+" -c private " + str("outputSwitch")).decode().strip().split("\r\n")
+
+        
+#         print("\n" + f"{'MPOD Controller IP Address::'+__resetCode+ __yellowCode+__IP.strip().center(len(__IP.strip())+4)+__resetCode: ^{fullColWidth+len(__yellowCode)+len(__resetCode) + len(__IP.strip())}}",end="\n")
+
+#         print(f"{'MPOD Chassis Switch Status::'+__resetCode+__greenCode+'ON'.center(len(__IP.strip())+4)+__resetCode: ^{fullColWidth+len(__greenCode)+len(__resetCode) + len(__IP.strip())}}",end="\n\n")
+        
+#         print(f"{__underlineCode}{'[CHAN]': ^{smallColWidth}}{'|'}{'[STATUS]': ^{smallColWidth}}{'|'}{'[MEASURED VOLTAGE]': ^{largeColWidth}}{'|'}{'[SET VOLTAGE]': ^{largeColWidth}}{'|'}{'[MEASURED CURRENT]': ^{largeColWidth}}{'|'}{'[CURRENT TRIP]': ^{largeColWidth}}{__resetCode}")
+#         print("")
+
+#         for id in __ListOfModIndexs:
+#             __modInfo = pxp.run("snmpbulkget  -v 2c -M /usr/share/snmp/mibs -m +WIENER-CRATE-MIB  -Cr3 -c guru 192.168.4.2 outputIndex outputSwitch outputMeasurementSenseVoltage outputMeasurementCurrent outputVoltage outputCurrent -OqvU")
+
+#             for chan in range(int(__NumberOfChansPerMod[id])):
+#                 mpodID = GenerateMpodID(id,chan)
+#                 ##! Rethink chan pos in list
+#                 chanPosInLists = int(id) * int(__NumberOfChansPerMod[id]) + int(chan)
+#                 retvalue = pxp.run(__snmpget_command + ' -c public outputSwitch.' + mpodID).strip().decode().lower()
+#                 colorCode=""
+#                 if retvalue == "off":
+#                     colorCode=__redCode
+#                 elif retvalue == "on":
+#                     colorCode=__greenCode
+                
+#                 # print(mpodID + "    " + str(chanPosInLists) +  "   " + str(ChannelStatus))
+#                 chanStr = '[' + mpodID + ']'
+            
+#                 statStr = ChannelStatus[chanPosInLists].upper() 
+                
+#                 termVolStr = '{:.2f}'.format(round(float(TermVoltageList[chanPosInLists]),2)) + " V"
+#                 voltageSetPoint = '{:.2f}'.format(round(float(SetVoltage[chanPosInLists]),2)) + " V"
+#                 termCurStr = '{:.3f}'.format(m.ceil(float(TermCurrentList[chanPosInLists])*1000*1000)) + " " + chr(956) +"A"
+            
+#                 currentTripPoint = '{:.3f}'.format(m.ceil(float(SetCurrent[chanPosInLists])*1000*1000)) + " " + chr(956) +"A"
+#                 print(f"{chanStr : ^{smallColWidth}}{'|'}{colorCode}{statStr : ^{smallColWidth}}{__resetCode}{'|'}{termVolStr : ^{largeColWidth}}{'|'}{voltageSetPoint  :^{largeColWidth}}{'|'}{termCurStr  :^{largeColWidth}}{'|'}{currentTripPoint  :^{largeColWidth}}")
+#             print("-".center(fullColWidth+len(__underlineCode),"-"))
+#     else:
+#         print("Crate's sysMainSwitch is "+ __redCode + "OFF" + __resetCode)
+
 
 
 # def set_dv(mod:str,chan:str,dvolts):
@@ -254,7 +334,7 @@ def write_out_HV(filename='mpodcontrol_hv'):
     print("Writing to " + filename)
     ouf = open(filename,'w')
     ouf.write("## Module Number , Channel Number , Set Voltage , Set Current Limit\n")
-    for mod in range(__NumberOfModules):
+    for mod in __ListOfModIndexs:
         for chan in range(int(__NumberOfChansPerMod[mod])):
             mpodID=GenerateMpodID(mod,chan)
             setvoltage = pxp.run(__snmpget_command + ' -c public outputVoltage.' + mpodID).strip().decode().upper()
@@ -306,4 +386,5 @@ def PrintCrateInfo():
 
 ReadNumberOfModuleAndChannels()
 PrintCrateInfo()
+# get_system_status()
 
