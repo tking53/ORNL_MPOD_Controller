@@ -21,8 +21,7 @@ __underlineCode="\033[4m"
 
 # Set SNMP and Default THINGS
 __snmpStripAll=" -OqvU "
-__snmpStripMost=" -Oqv "
-__snmp_base_options = ' -v 2c -M /usr/share/snmp/mibs -m +WIENER-CRATE-MIB '
+__snmp_base_options = ' -v 2c -m-WIENER-CRATE-MIB -M-/usr/share/snmp/mibs '
 __IP = ' 192.168.4.2 '
 __snmpget_command = 'snmpget ' + __snmpStripAll +__snmp_base_options + __IP
 __snmpBULKget_command = 'snmpbulkget ' + __snmpStripAll + __snmp_base_options + __IP
@@ -287,7 +286,12 @@ def PrintCrateInfo():
         print("System's Main Chassis switch is off, no modules can be detected in this state.")
         print("Set the switch to \"ON\", and either rerun this script or run \"ReadNumberOfModuleAndChannels()\"")
 
-ReadNumberOfModuleAndChannels()
-PrintCrateInfo()
-# get_system_status()
+def Startup():
+    if __GetCrateSysMainStatSTR().upper() == "ON":
+        ReadNumberOfModuleAndChannels()
+        PrintCrateInfo()
+    else:
+        print("sysMainSwitch is OFF. Please enable then run Startup again")
+
+Startup()
 
