@@ -54,6 +54,10 @@ def ReadNumberOfModuleAndChannels():
     global __NumberOfChansPerMod
     global __NumberOfChannels
     global __NumberOfModules
+
+    __ListOfModIndexs.clear()
+    __NumberOfChansPerMod.clear()
+
     __NumberOfModules = eval(pxp.run('snmpwalk ' + __snmp_base_options + __snmpStripAll + ' -c guru ' + __IP + ' moduleNumber'))
     __ListOfModIndexs= [ int(x[2]) for x in pxp.run('snmpwalk ' + __snmp_base_options + __snmpStripAll + ' -c guru ' + __IP + ' moduleIndex').decode().rstrip("\r\n").split("\r\n") ]
     
