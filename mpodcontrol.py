@@ -309,7 +309,7 @@ class MPODController:
             self.ReadNumberOfModuleAndChannels()
             self.PrintCrateInfo()
         else:
-            print("sysMainSwitch is OFF. Please enable then run Startup again")
+            print("sysMainSwitch is OFF. Please enable then run Startup() again")
 
 ############################################
     def __init__(self,IP=None):
@@ -324,7 +324,7 @@ class MPODController:
                 print("Another instance of MPOD Controller is already running at this IP address")
                 os._exit(1)
         else:
-            print("Need IPaddress of the mpod you wish to control as argument to MPODController().")
+            print("Need the IP address of the mpod you wish to control as argument to MPODController().")
             os.exit(1)
 
 ############################################
