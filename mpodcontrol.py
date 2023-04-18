@@ -287,7 +287,7 @@ class MPODController:
             volts=iter[2]
             current=iter[3]
             pxp.run(self.__MakeSnmpSetCommand('guru') + 'outputVoltage.' + mpodID + ' F '+str(volts))
-            pxp.run(self.__MakeSnmpSetCommand('guru') + 'outputCurrent.' + mpodID + ' F '+str(volts))
+            pxp.run(self.__MakeSnmpSetCommand('guru') + 'outputCurrent.' + mpodID + ' F '+str(current))
 
 ############################################
     def PrintCrateInfo(self):
