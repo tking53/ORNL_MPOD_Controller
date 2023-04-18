@@ -10,6 +10,7 @@ import time as chrono
 
 import os
 import fcntl
+import arpreq as arp
 
 ############################################
 #                set default values
@@ -24,7 +25,7 @@ class MPODController:
 
 ############################################
     # Set SNMP and Default THINGS
-    __ListOfDefaultIPsForMPODs = ["192.168.0.5","192.168.4.2","192.168.13.237"]
+    __ListOfDefaultIPsForMPODs = ["192.168.0.5","192.168.4.5","192.168.4.2","192.168.13.237"]
     __snmpStripAll=" -OqvU "
     __snmp_base_options = ' -v 2c -m-WIENER-CRATE-MIB -M-/usr/share/snmp/mibs '
     __IP = ''
@@ -312,10 +313,14 @@ class MPODController:
             print("sysMainSwitch is OFF. Please enable then run Startup() again")
 
 ############################################
-    def __init__(self,IP=None):
+    def __SetIP(self,IPtoSet):
+        self.__IP = " " + str(IPtoSet) + " "
+
+############################################
+    def __init__(self,IP:str=None):
         if IP != None:
-            self.__IP = " " + IP + " "
-            lockFileName="/tmp/mpodcontroller_" + IP.replace(".","_") + ".lock"
+            self.__SetIP(IP)
+            lockFileName="/tmp/mpodcontroller_" + self.__IP.strip().replace(".","_") + ".lock"
             self.lockfile = open(lockFileName, 'w')
             try:
                 fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -324,8 +329,38 @@ class MPODController:
                 print("Another instance of MPOD Controller is already running at this IP address")
                 os._exit(1)
         else:
-            print("Need the IP address of the mpod you wish to control as argument to MPODController().")
-            os.exit(1)
+            print("IP address not given. Trying defaults before bailing")
+            counter=0
+            while counter<len(self.__ListOfDefaultIPsForMPODs):
+                TestIP = self.__ListOfDefaultIPsForMPODs[counter]
+                print("trying " + TestIP)
+                (out,retcode) = pxp.run("ping -c1 -W1 " + TestIP,withexitstatus=True)
+                if retcode == 0:
+                    # self.__SetIP(self.__ListOfDefaultIPsForMPODs[counter])
+                    macaddress=arp.arpreq(TestIP)
+                    if macaddress[0:8].lower() == "30:32:94" or macaddress[0:13].lower() == "00:50:c2:2d:c":
+                        print("this is an WIENER thing")
+                        thing=pxp.run("snmpget "+ self.__snmpStripAll + self.__snmp_base_options + " -c public " + TestIP + " sysDescr.0").decode().strip().split(" ")
+                        print("snmp reports that this is a " + thing[1])
+                        if thing[1].upper() == "MPOD":
+                            self.__SetIP(TestIP)
+                            lockFileName="/tmp/mpodcontroller_" + self.__IP.strip().replace(".","_") + ".lock"
+                            self.lockfile = open(lockFileName, 'w')
+                            try:
+                                fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                                self.Startup()
+                            except IOError:
+                                print("Another instance of MPOD Controller is already running at this IP address")
+                            break
+                        elif thing[1].upper() == "CRATE":
+                            print("This is a crate (either pixie or VME)")
+                            counter+=1
+                elif counter == len(self.__ListOfDefaultIPsForMPODs) - 1:
+                    print("Out of default IP addresses to try failing out.")
+                    os._exit(1)
+                else:
+                    print("fail")
+                    counter+=1
 
 ############################################
     def __del__(self):
