@@ -296,6 +296,7 @@ class MPODController:
         else:
             colorCode=self.__redCode
 
+        print("MPOD IP is currently set as " + self.__IP)
         print("sysMainSwitch is currently " + colorCode + self.__GetCrateSysMainStatSTR().upper() + self.__resetCode)
         if self.__GetCrateSysMainStatSTR().lower() == "on":
             print(str(self.__NumberOfModules) + " module(s) found:: Number of Channels per Module " + str(self.__NumberOfChansPerMod))
@@ -312,54 +313,68 @@ class MPODController:
         else:
             print("sysMainSwitch is OFF. Please enable then run Startup() again")
 
+
 ############################################
-    def __SetIP(self,IPtoSet):
+    def __IsThisAnMPOD(self,IPforTest):
+            macaddress=arp.arpreq(str(IPforTest))
+            ## These two partial MAC addresses are the only two as of April 2023 that are registered to WEINER. ORNL currently has a mix of controllers with these addresses. The "00:50..."" address is on the older controllers while "30:32..." is on the new one (the one with the little red switch onboard)
+            if macaddress[0:8].lower() == "30:32:94" or macaddress[0:13].lower() == "00:50:c2:2d:c":
+                print("This MAC address is registered to WIENER")
+                selfDescription = self.__GETSYSDesc(IPforTest)
+                print("SNMP reports that the device at this IP address is a " + selfDescription[1])
+                if selfDescription[1].upper() == "MPOD":
+                    return (True)
+                else:
+                    return (False)
+            else:
+                return (False)
+
+############################################    
+    def __GETSYSDesc(self,TestIP):
+        return(pxp.run("snmpget "+ self.__snmpStripAll + self.__snmp_base_options + " -c public " + str(TestIP) + " sysDescr.0").decode().strip().split(" "))
+
+############################################
+    def __SetIP_AND_OpenLockFile(self,IPtoSet):
         self.__IP = " " + str(IPtoSet) + " "
+        self.lockfile = open("/tmp/mpodcontroller_" + self.__IP.strip().replace(".","_") + ".lock", 'w')
+
 
 ############################################
     def __init__(self,IP:str=None):
         if IP != None:
-            self.__SetIP(IP)
-            lockFileName="/tmp/mpodcontroller_" + self.__IP.strip().replace(".","_") + ".lock"
-            self.lockfile = open(lockFileName, 'w')
+            self.__SetIP_AND_OpenLockFile(IP)
             try:
                 fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                print("\n")
                 self.Startup()
             except IOError:
                 print("Another instance of MPOD Controller is already running at this IP address")
                 os._exit(1)
         else:
-            print("IP address not given. Trying defaults before bailing")
+            print("IP address not given. Trying defaults before bailing. Note that this assumes 1 and only 1 mpod exist on the network with a default IP address. I.E. if you are using 2 with \"default\" addresses we will pick the first one in the \"MPODController.__ListOfDefaultIPsForMPODs\" EVERY time")
             counter=0
             while counter<len(self.__ListOfDefaultIPsForMPODs):
                 TestIP = self.__ListOfDefaultIPsForMPODs[counter]
                 print("trying " + TestIP)
                 (out,retcode) = pxp.run("ping -c1 -W1 " + TestIP,withexitstatus=True)
                 if retcode == 0:
-                    # self.__SetIP(self.__ListOfDefaultIPsForMPODs[counter])
-                    macaddress=arp.arpreq(TestIP)
-                    if macaddress[0:8].lower() == "30:32:94" or macaddress[0:13].lower() == "00:50:c2:2d:c":
-                        print("this is an WIENER thing")
-                        thing=pxp.run("snmpget "+ self.__snmpStripAll + self.__snmp_base_options + " -c public " + TestIP + " sysDescr.0").decode().strip().split(" ")
-                        print("snmp reports that this is a " + thing[1])
-                        if thing[1].upper() == "MPOD":
-                            self.__SetIP(TestIP)
-                            lockFileName="/tmp/mpodcontroller_" + self.__IP.strip().replace(".","_") + ".lock"
-                            self.lockfile = open(lockFileName, 'w')
-                            try:
-                                fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                                self.Startup()
-                            except IOError:
-                                print("Another instance of MPOD Controller is already running at this IP address")
-                            break
-                        elif thing[1].upper() == "CRATE":
-                            print("This is a crate (either pixie or VME)")
-                            counter+=1
+                    if self.__IsThisAnMPOD(TestIP):
+                        self.__SetIP_AND_OpenLockFile(TestIP)
+                        try:
+                            fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                            print("\n")
+                            self.Startup()
+                        except IOError:
+                            print("Another instance of MPOD Controller is already running at this IP address")
+                        break
+                    else:
+                        print("This is a crate (either pixie or VME)")
+                        counter+=1
                 elif counter == len(self.__ListOfDefaultIPsForMPODs) - 1:
-                    print("Out of default IP addresses to try failing out.")
+                    print("Out of default IP addresses to try. Failing out.")
                     os._exit(1)
                 else:
-                    print("fail")
+                    print("IP address (" + TestIP + ") not active. Skipping.....")
                     counter+=1
 
 ############################################
