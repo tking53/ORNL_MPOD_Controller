@@ -26,8 +26,8 @@ class MPODController:
 ############################################
     # Set SNMP and Default THINGS
     __ListOfDefaultIPsForMPODs = ["192.168.0.5","192.168.4.5","192.168.4.2","192.168.13.237"]
-    __snmpStripAll=" -OqvU "
-    __snmp_base_options = ' -v 2c -m-WIENER-CRATE-MIB -M-/usr/share/snmp/mibs '
+    __snmpStripAll=" -OqvU "# NOTE:: The leading and Trailing spaces are important
+    __snmp_base_options = ' -v 2c -m-WIENER-CRATE-MIB -M-/usr/share/snmp/mibs '  # NOTE:: The leading and Trailing spaces are important
     __IP = ''
     __ListOfModIndexs = list()
     __NumberOfChansPerMod = list()
