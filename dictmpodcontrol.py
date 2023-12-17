@@ -9,6 +9,8 @@ import math as m
 import time as chrono
 import numpy as np
 import threading
+import logging
+import logging.handlers
 
 import re
 from rich import print
@@ -365,31 +367,36 @@ class MPODController:
         while self.Logging:
             volts = self.walk_sense_voltage()
             currents = self.walk_sense_current()
+            voltstr = ""
             for v in volts:
                 volt = float(v)
                 measurevstr = f'{volt:.2f}\t'
-                self.VoltageFile.write(measurevstr)
-            self.VoltageFile.write('\n')
+                voltstr += measurevstr
+            self.VoltageLog.error(voltstr)
+            currentstr = ""
             for c in currents:
                 current = float(c)
                 measureastr = f'{1000*1000*current:.2f}\t'
-                self.CurrentFile.write(measureastr)
-            self.CurrentFile.write('\n')
+                currentstr += measureastr
+            self.CurrentLog.error(currentstr)
             chrono.sleep(5)
-        self.VoltageFile.write('\n')
-        self.CurrentFile.write('\n')
 
 ############################################    
-    def StartLogging(self,filename,mode="w"):
+    def StartLogging(self,filename):
         if not self.Logging:
             self.Logging = True
+            self.baselogname = filename
             filename+= "-" + chrono.strftime("%m_%d_%Y_%H%M%S")
-            self.VoltageFilename = filename+"-voltages.tsv"
-            self.CurrentFilename = filename+"-currents.tsv"
-            self.VoltageFile = open(self.VoltageFilename,mode)
-            self.CurrentFile = open(self.CurrentFilename,mode)
-            self.VoltageFile.write("#Voltages are in Volts\n")
-            self.CurrentFile.write("#Currents are in microAmps\n")
+            self.VoltageFilename = "voltages-"+filename+".tsv"
+            self.CurrentFilename = "currents-"+filename+".tsv"
+            self.VoltageLog = logging.getLogger('Volts') 
+            self.VoltageLogHandler = logging.handlers.TimedRotatingFileHandler(self.VoltageFilename,when='H',interval=1,backupCount=48)
+            self.VoltageLog.addHandler(self.VoltageLogHandler)
+            self.CurrentLog = logging.getLogger('Current')
+            self.CurrentLogHandler = logging.handlers.TimedRotatingFileHandler(self.CurrentFilename,when='H',interval=1,backupCount=48)
+            self.CurrentLog.addHandler(self.CurrentLogHandler)
+            self.VoltageLog.error("#Voltages are in Volts\n")
+            self.CurrentLog.error("#Currents are in microAmps\n")
             self.Logger = threading.Thread(target=self.__LogInfo)
             self.Logger.start()
         else:
@@ -399,8 +406,8 @@ class MPODController:
     def StopLogging(self):
         self.Logging = False
         self.Logger.join()
-        self.VoltageFile.close()
-        self.CurrentFile.close()
+        self.VoltageLogHandler.close()
+        self.CurrentLogHandler.close()
 
 ############################################    
     def Startup(self):
