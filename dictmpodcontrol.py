@@ -386,7 +386,6 @@ class MPODController:
         if not self.Logging:
             self.Logging = True
             self.baselogname = filename
-            filename+= "-" + chrono.strftime("%m_%d_%Y_%H%M%S")
             self.VoltageFilename = "voltages-"+filename+".tsv"
             self.CurrentFilename = "currents-"+filename+".tsv"
             self.VoltageLog = logging.getLogger('Volts') 
