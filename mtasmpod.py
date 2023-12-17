@@ -4,11 +4,11 @@ from rich import print
 
 class MTASMPODController(mc.MPODController):
 
-    __center_hv_limit = 1250.0
-    __imo_hv_limit = 1450.0
+    center_hv_limit = 1250.0
+    imo_hv_limit = 1450.0
 
-    __pmt_uid_map = { 
-                      'C1F':   'u1', 'C1B':  'u2', 
+    pmt_uid_map = { 
+                      'C1F':   'u0', 'C1B':  'u1', 
                       'C2F':   'u2', 'C2B':  'u3',
                       'C3F':   'u4', 'C3B':  'u5',
                       'C4F':   'u6', 'C4B':  'u7',
@@ -36,9 +36,9 @@ class MTASMPODController(mc.MPODController):
 
     def __init__(self,ip=None):
         super().__init__(ip)
-        self.__uid_pmt_map = {}
-        for pmt,uid in self.__pmt_uid_map.items():
-            self.__uid_pmt_map[uid] = pmt
+        self.uid_pmt_map = {}
+        for pmt,uid in self.pmt_uid_map.items():
+            self.uid_pmt_map[uid] = pmt
 
     def get_mod_chan(self,label:str):
         try:
@@ -54,7 +54,7 @@ class MTASMPODController(mc.MPODController):
 
     def get_uid(self,label:str):
         try:
-            return self.__pmt_uid_map[label.upper()]
+            return self.pmt_uid_map[label.upper()]
         except KeyError:
             print(f'[bold red]ERROR: KEY {label} DOESN\'T EXIST FOR MTAS[/]')
             return None
@@ -106,19 +106,67 @@ class MTASMPODController(mc.MPODController):
     def set_voltage(self,label:str,volt,verbose=True):
         ring = (label.upper())[0]
         if ring == "C":
-            if volt <= self.__center_hv_limit:
+            if volt <= self.center_hv_limit:
                 mod,chan = self.get_mod_chan(label)
                 super().set_voltage(mod,chan,volt,verbose)
             else:
-                print(f'[bold red]ERROR: UNABLE TO SET VOLTAGE OF {label.upper()} to {volt} V as it exceeds the maximum voltage of {self.__center_hv_limit}[/]')
+                print(f'[bold red]ERROR: UNABLE TO SET VOLTAGE OF {label.upper()} to {volt} V as it exceeds the maximum voltage of {self.center_hv_limit}[/]')
         elif ring == "I" or ring == "M" or ring == "O":
-            if volt <= self.__imo_hv_limit:
+            if volt <= self.imo_hv_limit:
                 mod,chan = self.get_mod_chan(label)
                 super().set_voltage(mod,chan,volt,verbose)
             else:
-                print(f'[bold red]ERROR: UNABLE TO SET VOLTAGE OF {label.upper()} to {volt} V as it exceeds the maximum voltage of {self.__center_hv_limit}[/]')
+                print(f'[bold red]ERROR: UNABLE TO SET VOLTAGE OF {label.upper()} to {volt} V as it exceeds the maximum voltage of {self.center_hv_limit}[/]')
         else:
             print(f'[bold red]ERROR: UNABLE TO SET VOLTAGE AS LABEL: {label} IS INCORRECT AND DOES NOT START WITH C,I,M, OR O')
+    
+    def get_system_status(self):
+        smallColWidth=11
+        largeColWidth=21
+        fullColWidth=smallColWidth*3 + largeColWidth*4
+        if super().GetCrateSysMainStatSTR().lower() == "on":
+            print(f'IP: [cyan]{self.IP}[/] Software Switch: [green]ON[/] ')
+            if self.Logging:
+                print(f'Logging: [green]{self.Logging}[/] VoltageFile: {self.VoltageFilename} CurrentFile: {self.CurrentFilename}')
+            else:
+                print(f'Logging: [red]{self.Logging}[/]')
+            print(f'[underline]{"[PMTNAME]": ^{smallColWidth}}|{"[MODULEID]": ^{smallColWidth}}|{"[CHANID]": ^{smallColWidth}}|{"[CHAN]": ^{smallColWidth}}|{"[STATUS]": ^{smallColWidth}}|{"[MEASURED VOLTAGE]": ^{largeColWidth}}|{"[SET VOLTAGE]": ^{largeColWidth}}|{"[MEASURED CURRENT]" : ^{largeColWidth}}|{"[CURRENT TRIP]": ^{largeColWidth}}|{"[RAMP]": ^{smallColWidth}}[/]')
+
+            firstmodid = self.modlist[0]
+            for id,map in self.hvmap.items():
+                modid = map['modid']
+                chanid = map['chanid']
+                status = map['state']
+                setv = map['voltage']
+                seta = map['current']
+                ramp = map['ramp']
+                try:
+                    pmtname = self.uid_pmt_map[id]
+                except KeyError:
+                    pmtname = 'NULL'
+                
+                measurev,measurea  = super().get_sense_voltage_current(modid,chanid)
+
+                measurevstr = f'{measurev:.2f} V'
+                setvstr = f'{setv:.2f} V'
+                rampstr = f'{ramp:.2f} V/s'
+
+                mu = chr(956)
+                newline = '-'
+                measureastr = f'{1000*1000*measurea:.2f} {mu}A'
+                setastr = f'{1000*1000*seta:.2f} {mu}A'
+                if modid != firstmodid:
+                    firstmodid = modid
+                    print(newline*(5*smallColWidth + 3*largeColWidth + 40))
+
+                if status == 'OFF':
+                    print(f'[blue]{pmtname: ^{smallColWidth}}[/][white]|{modid: ^{smallColWidth}}|{chanid: ^{smallColWidth}}|{id: ^{smallColWidth}}|[/][red]{status: ^{smallColWidth}}[/][white]|{measurevstr: ^{largeColWidth}}|{setvstr: ^{largeColWidth}}|{measureastr: ^{largeColWidth}}|{setastr: ^{largeColWidth}}|{rampstr: ^{smallColWidth}}[/]')
+                else:
+                    print(f'[blue]{pmtname: ^{smallColWidth}}[/][white]|{modid: ^{smallColWidth}}|{chanid: ^{smallColWidth}}|{id: ^{smallColWidth}}|[/][green]{status: ^{smallColWidth}}[/][white]|{measurevstr: ^{largeColWidth}}|{setvstr: ^{largeColWidth}}|{measureastr: ^{largeColWidth}}|{setastr: ^{largeColWidth}}|{rampstr: ^{smallColWidth}}[/]')
+            
+        else:
+            print(f'IP: [cyan]{self.__IP}[/] Sofware Switch: [red]OFF[/]')
+
 
     def get_voltage(self,label:str,verbose=True):
         try:

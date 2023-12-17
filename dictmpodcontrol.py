@@ -37,28 +37,28 @@ class MPODController:
  
 ############################################
     def __SetIP_AND_OpenLockFile(self,IPtoSet):
-        self.__IP = " " + str(IPtoSet) + " "
-        self.lockfile = open("/tmp/mpodcontroller_" + self.__IP.strip().replace(".","_") + ".lock", 'w')
+        self.IP = " " + str(IPtoSet) + " "
+        self.lockfile = open("/tmp/mpodcontroller_" + self.IP.strip().replace(".","_") + ".lock", 'w')
 
 ############################################
     def SetIPOfMpod(self,ip_to_set):
-        print(f"[bold red]Updated IP from {self.__IP} to {ip_to_set} :: YOU NEED TO RERUN `Startup()`[/]")
-        self.__IP = ip_to_set
+        print(f"[bold red]Updated IP from {self.IP} to {ip_to_set} :: YOU NEED TO RERUN `Startup()`[/]")
+        self.IP = ip_to_set
 
 ############################################
     def GetNumberOfModules(self):
-        print(f"[white]MPOD Crate at IP[/] [cyan]{self.__IP}[/] [white]has {len(self.__modlist)} installed[/]")
-        print(f"[white]They exist in the following slots {self.__modlist}, which is 0 counting[/]")
+        print(f"[white]MPOD Crate at IP[/] [cyan]{self.IP}[/] [white]has {len(self.modlist)} installed[/]")
+        print(f"[white]They exist in the following slots {self.modlist}, which is 0 counting[/]")
 
 ############################################
     def GetNumberOfChanPerModule(self):
         for key in self.__chandict:
-            print(f"[white]MPOD CRATE AT IP[/] [cyan]{self.__IP}[/] [white]has a Module {key} with {len(self.__chandict[key])} channels[/]")
+            print(f"[white]MPOD CRATE AT IP[/] [cyan]{self.IP}[/] [white]has a Module {key} with {len(self.__chandict[key])} channels[/]")
 
 ############################################
     def GetCrateSysMainStatus(self):
         retval = pxp.run(self.__MakeSnmpGetCommand("public") + ' sysMainSwitch.0').decode().upper()
-        print(f"[white]MPOD CRATE AT IP[/] [cyan]{self.__IP}[/] is [red]{retval}[/]")
+        print(f"[white]MPOD CRATE AT IP[/] [cyan]{self.IP}[/] is [red]{retval}[/]")
 
 ############################################
     def get_voltage(self,mod: int, chan: int,verbose=True):
@@ -66,10 +66,10 @@ class MPODController:
             mpodID = self.__GenerateMpodID(mod, chan)
             retval = eval(pxp.run(self.__MakeSnmpGetCommand("public") + ' outputVoltage.'+mpodID))
             if verbose:
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has a voltage of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has a voltage of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return retval
         if verbose:
-            print(f"[red bold]ERROR: UNABLE TO GET VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[red bold]ERROR: UNABLE TO GET VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
         return None
 
 ############################################
@@ -78,10 +78,10 @@ class MPODController:
             mpodID = self.__GenerateMpodID(mod, chan)
             retval = eval(pxp.run(self.__MakeSnmpGetCommand("public")+ ' outputCurrent.' + mpodID))
             if verbose:
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has a current limit of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has a current limit of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return retval
         if verbose:
-            print(f"[red bold]ERROR: UNABLE TO GET CURRENT LIMIT ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[red bold]ERROR: UNABLE TO GET CURRENT LIMIT ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
         return None
 
 ############################################
@@ -90,10 +90,10 @@ class MPODController:
             mpodID = self.__GenerateMpodID(mod, chan)
             retval = eval(pxp.run(self.__MakeSnmpGetCommand("public") + ' outputMeasurementCurrent.' + mpodID))
             if verbose:
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has a current of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has a current of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return retval
         if verbose:
-            print(f"[red bold]ERROR: UNABLE TO GET CURRENT ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[red bold]ERROR: UNABLE TO GET CURRENT ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
         return None
 
 ############################################
@@ -102,10 +102,10 @@ class MPODController:
             mpodID = self.__GenerateMpodID(mod, chan)
             retval = eval(pxp.run(self.__MakeSnmpGetCommand("public") + ' outputMeasurementSenseVoltage.' + mpodID))
             if verbose:
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has an actual ouput voltage of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has an actual ouput voltage of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return retval 
         if verbose:
-            print(f"[red bold]ERROR: UNABLE TO GET ACTUAL OUTPUT VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[red bold]ERROR: UNABLE TO GET ACTUAL OUTPUT VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
         return None
 
 ############################################
@@ -114,10 +114,10 @@ class MPODController:
             mpodID = self.__GenerateMpodID(mod, chan)
             retval = eval(pxp.run(self.__MakeSnmpGetCommand("public") + ' outputMeasurementTerminalVoltage.' + mpodID))
             if verbose:
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has an ouput voltage of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has an ouput voltage of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return retval
         if verbose:
-            print(f"[red bold]ERROR: UNABLE TO GET OUTPUT VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[red bold]ERROR: UNABLE TO GET OUTPUT VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
         return None
 
 ############################################
@@ -126,10 +126,10 @@ class MPODController:
             mpodID = self.__GenerateMpodID(mod, chan)
             retval = eval(pxp.run(self.__MakeSnmpGetCommand("public") + ' outputVoltageRiseRate.' + mpodID))
             if verbose:
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has a ramp rate of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has a ramp rate of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return retval
         if verbose:
-            print(f"[red bold]ERROR: UNABLE TO GET RAMP RATE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[red bold]ERROR: UNABLE TO GET RAMP RATE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
         return None
 
 
@@ -139,10 +139,10 @@ class MPODController:
             mpodID = self.__GenerateMpodID(mod, chan)
             retval = pxp.run(self.__MakeSnmpGetCommand("public") + ' outputSwitch.' + mpodID).decode().replace("\r\n","")
             if verbose:
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has an output switch state of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has an output switch state of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return retval
         if verbose:
-            print(f"[red bold]ERROR: UNABLE TO GET OUTPUT VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[red bold]ERROR: UNABLE TO GET OUTPUT VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
         return None
 
 ############################################
@@ -151,14 +151,14 @@ class MPODController:
             mpodID = self.__GenerateMpodID(mod, chan)
             retval = eval(pxp.run(self.__MakeSnmpGetCommand("public") + ' outputStatus.' + mpodID))
             if verbose:
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has a status of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has a status of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return retval
         if verbose:
-            print(f"[red bold]ERROR: UNABLE TO GET STATUS ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[red bold]ERROR: UNABLE TO GET STATUS ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
         return None
 
 ############################################
-    def __get_all_info(self,mod: int,chan: int):
+    def get_all_info(self,mod: int,chan: int):
         mpodID = self.__GenerateMpodID(mod, chan)
         mpodSnmpIndex = str(int(mpodID.lstrip("u"))+1)
         chanData = pxp.run(self.__MakeSnmpGetCommand("guru") + " outputIndex." + mpodSnmpIndex + " outputSwitch." + mpodSnmpIndex + " outputMeasurementSenseVoltage." + mpodSnmpIndex + " outputVoltage." + mpodSnmpIndex + " outputMeasurementCurrent." + mpodSnmpIndex + " outputCurrent." + mpodSnmpIndex + " outputVoltageRiseRate." + mpodSnmpIndex + " outputVoltageFallRate." + mpodSnmpIndex).decode().split("\r\n")
@@ -170,7 +170,8 @@ class MPODController:
         riseFallRateStr = float(chanData[6])
         return {'state': statStr, 'voltage': voltageSetPointStr, 'current' : currentTripPointStr, 'ramp': riseFallRateStr, 'sense_current': termCurStr, 'sense_voltage': termVolStr}
 
-    def __get_sense_voltage_current(self,mod: int,chan: int):
+############################################
+    def get_sense_voltage_current(self,mod: int,chan: int):
         mpodID = self.__GenerateMpodID(mod, chan)
         mpodSnmpIndex = str(int(mpodID.lstrip("u"))+1)
         chanData = pxp.run(self.__MakeSnmpGetCommand("guru") + " outputIndex." + mpodSnmpIndex + " outputMeasurementSenseVoltage." + mpodSnmpIndex + " outputMeasurementCurrent." + mpodSnmpIndex).decode().split("\r\n")
@@ -179,8 +180,18 @@ class MPODController:
         return termVolStr, termCurStr 
 
 ############################################
+    def walk_sense_voltage(self):
+        chanData = pxp.run(self.__MakeSnmpWalkCommand("guru") + " outputMeasurementSenseVoltage").decode().split("\r\n")[:-1]
+        return chanData 
+
+############################################
+    def walk_sense_current(self):
+        chanData = pxp.run(self.__MakeSnmpWalkCommand("guru") + " outputMeasurementCurrent").decode().split("\r\n")[:-1]
+        return chanData 
+
+############################################
     def __does_mod_chan_exist(self,mod: int, chan: int):
-        if mod in self.__modlist:
+        if mod in self.modlist:
             if chan in self.__chandict[mod]:
                 return True
         return False
@@ -203,22 +214,26 @@ class MPODController:
 
 ############################################
     def __MakeSnmpGetCommand(self,community):
-        return ('snmpget ' + self.__snmp_base_options + self.__snmpStripAll + ' -c ' + str(community) + self.__IP)
+        return ('snmpget ' + self.__snmp_base_options + self.__snmpStripAll + ' -c ' + str(community) + self.IP)
 
 ############################################
     def __MakeSnmpBULKgetCommand(self,community):
-        return ('snmpbulkget ' + self.__snmpStripAll + self.__snmp_base_options + "-Cr" + str(self.__NumberOfChannels) +  ' -c ' + str(community) + self.__IP)
+        return ('snmpbulkget ' + self.__snmpStripAll + self.__snmp_base_options + "-Cr" + str(self.__NumberOfChannels) +  ' -c ' + str(community) + self.IP)
 
 ############################################
     def __MakeSnmpSetCommand(self,community):
-        return ('snmpset ' + self.__snmp_base_options + self.__snmpStripAll + ' -c ' + str(community) + self.__IP)
+        return ('snmpset ' + self.__snmp_base_options + self.__snmpStripAll + ' -c ' + str(community) + self.IP)
+
+############################################
+    def __MakeSnmpWalkCommand(self,community):
+        return ('snmpwalk ' + self.__snmp_base_options + self.__snmpStripAll + ' -c ' + str(community) + self.IP)
 
 ############################################    
     def __GETSYSDesc(self,TestIP):
         return (pxp.run("snmpget "+ self.__snmpStripAll + self.__snmp_base_options + " -c public " + str(TestIP) + " sysDescr.0").decode().strip().split(" "))
         
 ############################################
-    def __GetCrateSysMainStatSTR(self):
+    def GetCrateSysMainStatSTR(self):
         retvalue=pxp.run(self.__MakeSnmpGetCommand("public") + ' sysMainSwitch.0').decode()
         return(retvalue.replace("\r\n",""))
 
@@ -244,10 +259,10 @@ class MPODController:
             retval = eval(pxp.run(self.__MakeSnmpSetCommand('guru') + 'outputVoltage.' + mpodID + ' F '+str(volts)))
             self.hvmap[mpodID]['voltage'] = retval
             if verbose:
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has been set from {oldhv} to a voltage of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has been set from {oldhv} to a voltage of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return {'new':retval,'old':oldhv}
         if verbose:
-            print(f"[red bold]ERROR: UNABLE TO SET VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[red bold]ERROR: UNABLE TO SET VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
         return {'new':None,'old':None}
 
 ############################################
@@ -259,10 +274,10 @@ class MPODController:
             retval = eval(pxp.run(self.__MakeSnmpSetCommand('guru') + 'outputCurrent.' + mpodID + ' F '+str(currentToSet)))
             self.hvmap[mpodID]['current'] = retval
             if verbose:
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has been set from {oldcurrent} to a current of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has been set from {oldcurrent} to a current of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return {'new':retval,'old':oldcurrent}
         if verbose:
-            print(f"[red bold]ERROR: UNABLE TO SET VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[red bold]ERROR: UNABLE TO SET VOLTAGE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
         return {'new':None,'old':None}
 
 ############################################
@@ -272,27 +287,27 @@ class MPODController:
             oldstate = self.hvmap[mpodID]['state']
             retval = pxp.run(self.__MakeSnmpSetCommand('guru') + ' outputSwitch.'+mpodID+' i '+str(onOff)).decode().replace("\r\n","")
             self.hvmap[mpodID]['state'] = retval.upper()
-            print(f"[bold magenta]MPOD CRATE AT IP[/][cyan]{self.__IP}[/][bold magenta] SETTING MODULE {mod} CHANNEL {chan} to [/][bold red]{retval.upper()}[/][bold magenta] from [/][bold red]{oldstate.upper()}[/]")
+            print(f"[bold magenta]MPOD CRATE AT IP[/][cyan]{self.IP}[/][bold magenta] SETTING MODULE {mod} CHANNEL {chan} to [/][bold red]{retval.upper()}[/][bold magenta] from [/][bold red]{oldstate.upper()}[/]")
         else:
-            print(f"[bold red]ERROR: UNABLE TO SET ON/OFF ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+            print(f"[bold red]ERROR: UNABLE TO SET ON/OFF ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
 
 ############################################    
     def set_on_off_all(self,onOff):
-        for mod in self.__modlist:
+        for mod in self.modlist:
             for chan in self.__chandict[mod]:
                 self.set_on_off(mod,chan,onOff)
             print('\n')
 
 ############################################
     def set_current_limit_all(self,limit,verbose=True):
-        for mod in self.__modlist:
+        for mod in self.modlist:
             for chan in self.__chandict[mod]:
                 _ = self.set_current(mod,chan,limit,verbose)
             print('\n')
 
 ############################################
     def set_ramp_all(self,rate,verbose=True):
-        for mod in self.__modlist:
+        for mod in self.modlist:
             for chan in self.__chandict[mod]:
                 val = self.set_ramp(mod,chan,rate,verbose)
 
@@ -304,11 +319,11 @@ class MPODController:
             retval = float(pxp.run(self.__MakeSnmpSetCommand('guru') +  ' outputVoltageRiseRate.'+ mpodID+' F '+str(rate)).decode().replace("\r\n",""))
             self.hvmap[mpodID]['ramp'] = retval
             if verbose :
-                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.__IP}[/] [white]has been set to a ramp rate of {retval} on MODULE {mod} CHANNEL {chan}[/]")
+                print(f"[white]MPOD CRATE AT IP [/][cyan]{self.IP}[/] [white]has been set to a ramp rate of {retval} on MODULE {mod} CHANNEL {chan}[/]")
             return {'old' : oldramp, 'new': retval}
         else:
             if verbose:
-                print(f"[red bold]ERROR: UNABLE TO SET RAMP RATE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.__IP}[/]")
+                print(f"[red bold]ERROR: UNABLE TO SET RAMP RATE ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
             return {'old' : None, 'new': None}
 
 ############################################    
@@ -316,47 +331,49 @@ class MPODController:
         print('[dark_orange]Parsing out the current channelmap.\nThis will take a second as we\'re polling the mpod to get the current hv parameters[/]')
         self.__chandict = {}
         self.__chanlist = []
-        self.__modlist = []
+        self.modlist = []
         self.hvmap = {}
 
-        self.__channamelist = [ str(byte_string,encoding='utf-8').lower() for byte_string in  ( ((pxp.run('snmpwalk ' + self.__snmp_base_options + self.__snmpStripAll + ' -c guru ' + self.__IP + ' outputName')).split(b'\r\n'))[:-1] ) ]
+        self.__channamelist = [ str(byte_string,encoding='utf-8').lower() for byte_string in  ( ((pxp.run('snmpwalk ' + self.__snmp_base_options + self.__snmpStripAll + ' -c guru ' + self.IP + ' outputName')).split(b'\r\n'))[:-1] ) ]
 
         for cname in self.__channamelist:
             m = re.findall(r"\d",cname)
             if len(m) < 3 :
-                if not ( 0 in self.__modlist):
-                    self.__modlist.append(0)
+                if not ( 0 in self.modlist):
+                    self.modlist.append(0)
                     self.__chandict[0] = []
                 chanid = int(''.join([str(a) for a in m]))
                 self.__chandict[0].append(chanid)
-                info = self.__get_all_info(0,chanid)
+                info = self.get_all_info(0,chanid)
                 self.hvmap[cname] = {"modid" : 0, "chanid" : chanid, "voltage": info['voltage'], "current": info['current'], "state": info['state'],"ramp": info['ramp']}
             else:
                 modnum = int(m[0])
-                if not(modnum in self.__modlist):
-                    self.__modlist.append(modnum)
+                if not(modnum in self.modlist):
+                    self.modlist.append(modnum)
                     self.__chandict[modnum] = []
                 chanid = int(''.join([str(a) for a in m[1:]]))
                 self.__chandict[modnum].append(chanid)
-                info = self.__get_all_info(modnum,chanid)
+                info = self.get_all_info(modnum,chanid)
                 self.hvmap[cname] = {"modid" : modnum, "chanid" : chanid, "voltage": info['voltage'], "current": info['current'], "state": info['state'],"ramp": info['ramp']}
         #print(self.__channamelist)
-        #print(self.__modlist)
+        #print(self.modlist)
         #print(self.__chandict)
         #print(self.hvmap)
 
 ############################################    
     def __LogInfo(self):
         while self.Logging:
-            for id,map in self.hvmap.items():
-                modid = map['modid']
-                chanid = map['chanid']
-                measurev,measurea  = self.__get_sense_voltage_current(modid,chanid)
-                measurevstr = f'{measurev:.2f}\t'
-                measureastr = f'{1000*1000*measurea:.2f}\t'
+            volts = self.walk_sense_voltage()
+            currents = self.walk_sense_current()
+            for v in volts:
+                volt = float(v)
+                measurevstr = f'{volt:.2f}\t'
                 self.VoltageFile.write(measurevstr)
-                self.CurrentFile.write(measureastr)
             self.VoltageFile.write('\n')
+            for c in currents:
+                current = float(c)
+                measureastr = f'{1000*1000*current:.2f}\t'
+                self.CurrentFile.write(measureastr)
             self.CurrentFile.write('\n')
             chrono.sleep(5)
         self.VoltageFile.write('\n')
@@ -388,7 +405,7 @@ class MPODController:
 ############################################    
     def Startup(self):
         print('[magenta]Beginning Startup[/]')
-        if self.__GetCrateSysMainStatSTR().upper() == "ON":
+        if self.GetCrateSysMainStatSTR().upper() == "ON":
             print("[magenta]The crate software switch is on[/]")
             self.ParseChannelMap()
         else:
@@ -459,15 +476,15 @@ class MPODController:
         smallColWidth=11
         largeColWidth=21
         fullColWidth=smallColWidth*3 + largeColWidth*4
-        if self.__GetCrateSysMainStatSTR().lower() == "on":
-            print(f'IP: [cyan]{self.__IP}[/] Software Switch: [green]ON[/] ')
+        if self.GetCrateSysMainStatSTR().lower() == "on":
+            print(f'IP: [cyan]{self.IP}[/] Software Switch: [green]ON[/] ')
             if self.Logging:
                 print(f'Logging: [green]{self.Logging}[/] VoltageFile: {self.VoltageFilename} CurrentFile: {self.CurrentFilename}')
             else:
                 print(f'Logging: [red]{self.Logging}[/]')
             print(f'[underline]{"[MODULEID]": ^{smallColWidth}}|{"[CHANID]": ^{smallColWidth}}|{"[CHAN]": ^{smallColWidth}}|{"[STATUS]": ^{smallColWidth}}|{"[MEASURED VOLTAGE]": ^{largeColWidth}}|{"[SET VOLTAGE]": ^{largeColWidth}}|{"[MEASURED CURRENT]" : ^{largeColWidth}}|{"[CURRENT TRIP]": ^{largeColWidth}}|{"[RAMP]": ^{smallColWidth}}[/]')
 
-            firstmodid = self.__modlist[0]
+            firstmodid = self.modlist[0]
             for id,map in self.hvmap.items():
                 modid = map['modid']
                 chanid = map['chanid']
@@ -476,7 +493,7 @@ class MPODController:
                 seta = map['current']
                 ramp = map['ramp']
                 
-                measurev,measurea  = self.__get_sense_voltage_current(modid,chanid)
+                measurev,measurea  = self.get_sense_voltage_current(modid,chanid)
 
                 measurevstr = f'{measurev:.2f} V'
                 setvstr = f'{setv:.2f} V'
@@ -496,12 +513,12 @@ class MPODController:
                     print(f'[white]{modid: ^{smallColWidth}}|{chanid: ^{smallColWidth}}|{id: ^{smallColWidth}}|[/][green]{status: ^{smallColWidth}}[/][white]|{measurevstr: ^{largeColWidth}}|{setvstr: ^{largeColWidth}}|{measureastr: ^{largeColWidth}}|{setastr: ^{largeColWidth}}|{rampstr: ^{smallColWidth}}[/]')
             
         else:
-            print(f'IP: [cyan]{self.__IP}[/] Sofware Switch: [red]OFF[/]')
+            print(f'IP: [cyan]{self.IP}[/] Sofware Switch: [red]OFF[/]')
 
 ############################################
     def write_out_HV(self,filename:str):
         filename+= "-" + chrono.strftime("%m_%d_%Y_%H%M%S") + ".csv"
-        print(f"Writing out the current HV of MPOD at IP: [cyan]{self.__IP}[/] to file : {filename}")
+        print(f"Writing out the current HV of MPOD at IP: [cyan]{self.IP}[/] to file : {filename}")
         ouf = open(filename,'w')
         ouf.write("## Module Number , Channel Number , Set Voltage , Set Current Limit\n")
         for id in self.hvmap:
