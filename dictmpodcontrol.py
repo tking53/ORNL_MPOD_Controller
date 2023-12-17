@@ -8,6 +8,7 @@ import pexpect as pxp
 import math as m
 import time as chrono
 import numpy as np
+import threading
 
 import re
 from rich import print
@@ -223,6 +224,9 @@ class MPODController:
 
 ############################################
     def SetCrateSwitch(self,Val: int):
+        if Val == 0:
+            if self.Logging:
+                self.StopLogging()
         retval = pxp.run(self.__MakeSnmpSetCommand('private') + ' sysMainSwitch.0' + ' i ' + str(Val)).decode()
         print(f"[bold red]{retval}[/]")
         if Val == 1:
@@ -342,14 +346,8 @@ class MPODController:
         #print(self.hvmap)
 
 ############################################    
-    def __LogInfo(self,voltname,currentname,mode):
-        self.VoltageFilename = voltname
-        self.CurrentFilename = currentname
-        self.VoltageFile = open(self.VoltageFilename,mode,buffering=1)
-        self.CurrentFile = open(self.CurrentFilename,mode,buffering=1)
-        self.VoltageFile.write("#Voltages are in Volts")
-        self.CurrentFile.write("#Currents are in microAmps")
-        while True:
+    def __LogInfo(self):
+        while self.Logging:
             for id,map in self.hvmap.items():
                 modid = map['modid']
                 chanid = map['chanid']
@@ -360,20 +358,22 @@ class MPODController:
                 self.CurrentFile.write(measureastr)
             self.VoltageFile.write('\n')
             self.CurrentFile.write('\n')
-            if not self.Logging:
-                break
-            time.sleep(5)
-        self.VoltageFile.close()
-        self.CurrentFile.close()
+            chrono.sleep(5)
+        self.VoltageFile.write('\n')
+        self.CurrentFile.write('\n')
 
 ############################################    
     def StartLogging(self,filename,mode="w"):
         if not self.Logging:
             self.Logging = True
             filename+= "-" + chrono.strftime("%m_%d_%Y_%H%M%S")
-            voltname = filename+"-voltages.tsv"
-            currentname = filename+"-currents.tsv"
-            self.Logger = threading.Thread(target=self.__LogInfo,args=(voltname,currentname,mode))
+            self.VoltageFilename = filename+"-voltages.tsv"
+            self.CurrentFilename = filename+"-currents.tsv"
+            self.VoltageFile = open(self.VoltageFilename,mode)
+            self.CurrentFile = open(self.CurrentFilename,mode)
+            self.VoltageFile.write("#Voltages are in Volts\n")
+            self.CurrentFile.write("#Currents are in microAmps\n")
+            self.Logger = threading.Thread(target=self.__LogInfo)
             self.Logger.start()
         else:
             print(f"[red bold] ALREADY LOGGING CURRENTS IN {self.CurrentFilename} AND VOLTAGES IN {self.VoltageFilename} [/]")
@@ -382,6 +382,8 @@ class MPODController:
     def StopLogging(self):
         self.Logging = False
         self.Logger.join()
+        self.VoltageFile.close()
+        self.CurrentFile.close()
 
 ############################################    
     def Startup(self):
@@ -397,6 +399,7 @@ class MPODController:
         self.Logging = False
         if IP != None:
             self.__SetIP_AND_OpenLockFile(IP)
+            self.hvmap = {}
             if self.__IsThisAnMPOD(IP):
                 try:
                     fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -457,9 +460,14 @@ class MPODController:
         largeColWidth=21
         fullColWidth=smallColWidth*3 + largeColWidth*4
         if self.__GetCrateSysMainStatSTR().lower() == "on":
-            print(f'IP: [cyan]{self.__IP}[/] Sofware Switch: [green]ON[/]')
+            print(f'IP: [cyan]{self.__IP}[/] Software Switch: [green]ON[/] ')
+            if self.Logging:
+                print(f'Logging: [green]{self.Logging}[/] VoltageFile: {self.VoltageFilename} CurrentFile: {self.CurrentFilename}')
+            else:
+                print(f'Logging: [red]{self.Logging}[/]')
             print(f'[underline]{"[MODULEID]": ^{smallColWidth}}|{"[CHANID]": ^{smallColWidth}}|{"[CHAN]": ^{smallColWidth}}|{"[STATUS]": ^{smallColWidth}}|{"[MEASURED VOLTAGE]": ^{largeColWidth}}|{"[SET VOLTAGE]": ^{largeColWidth}}|{"[MEASURED CURRENT]" : ^{largeColWidth}}|{"[CURRENT TRIP]": ^{largeColWidth}}|{"[RAMP]": ^{smallColWidth}}[/]')
 
+            firstmodid = self.__modlist[0]
             for id,map in self.hvmap.items():
                 modid = map['modid']
                 chanid = map['chanid']
@@ -475,8 +483,12 @@ class MPODController:
                 rampstr = f'{ramp:.2f} V/s'
 
                 mu = chr(956)
+                newline = '-'
                 measureastr = f'{1000*1000*measurea:.2f} {mu}A'
                 setastr = f'{1000*1000*seta:.2f} {mu}A'
+                if modid != firstmodid:
+                    firstmodid = modid
+                    print(newline*(5*smallColWidth + 3*largeColWidth + 28))
 
                 if status == 'OFF':
                     print(f'[white]{modid: ^{smallColWidth}}|{chanid: ^{smallColWidth}}|{id: ^{smallColWidth}}|[/][red]{status: ^{smallColWidth}}[/][white]|{measurevstr: ^{largeColWidth}}|{setvstr: ^{largeColWidth}}|{measureastr: ^{largeColWidth}}|{setastr: ^{largeColWidth}}|{rampstr: ^{smallColWidth}}[/]')
