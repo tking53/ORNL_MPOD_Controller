@@ -191,10 +191,11 @@ class MPODController:
             if macaddress[0:8].lower() == "30:32:94" or macaddress[0:13].lower() == "00:50:c2:2d:c":
                 print("[green]\tThis MAC address is registered to WIENER[/]")
                 selfDescription = self.__GETSYSDesc(IPforTest)
-                print(f"[green]\tSNMP reports that the device at this IP address of[/] [cyan]{IPforTest}[/] [green]is an {selfDescription[1]}[/]")
                 if selfDescription[1].upper() == "MPOD":
+                    print(f"[green]\tSNMP reports that the device at this IP address of[/] [cyan]{IPforTest}[/] [green]is an {selfDescription[1]}[/]")
                     return True
                 else:
+                    print(f"[green]\tSNMP reports that the device at this IP address of[/] [cyan]{IPforTest}[/] [green]is an PIXIE {selfDescription[1]}[/]")
                     return False
             else:
                 return False
@@ -226,6 +227,9 @@ class MPODController:
         print(f"[bold red]{retval}[/]")
         if Val == 1:
             print("[white bold]Waiting ~15 seconds for the modules to boot up[/]")
+            print("[white bold]The channels all have their default values set, 0V and max current trip. This program has kept the old values though.[/]")
+            print("[white bold]Write out the current values and set from the written values if you haven't saved in a while.[/]")
+            print("[white bold]If you don't do this then the internal map of the values will disagree with what they're actually set to.[/]")
             chrono.sleep(15)
 
 ###########################################
@@ -338,6 +342,48 @@ class MPODController:
         #print(self.hvmap)
 
 ############################################    
+    def __LogInfo(self,voltname,currentname,mode):
+        self.VoltageFilename = voltname
+        self.CurrentFilename = currentname
+        self.VoltageFile = open(self.VoltageFilename,mode,buffering=1)
+        self.CurrentFile = open(self.CurrentFilename,mode,buffering=1)
+        self.VoltageFile.write("#Voltages are in Volts")
+        self.CurrentFile.write("#Currents are in microAmps")
+        while True:
+            for id,map in self.hvmap.items():
+                modid = map['modid']
+                chanid = map['chanid']
+                measurev,measurea  = self.__get_sense_voltage_current(modid,chanid)
+                measurevstr = f'{measurev:.2f}\t'
+                measureastr = f'{1000*1000*measurea:.2f}\t'
+                self.VoltageFile.write(measurevstr)
+                self.CurrentFile.write(measureastr)
+            self.VoltageFile.write('\n')
+            self.CurrentFile.write('\n')
+            if not self.Logging:
+                break
+            time.sleep(5)
+        self.VoltageFile.close()
+        self.CurrentFile.close()
+
+############################################    
+    def StartLogging(self,filename,mode="w"):
+        if not self.Logging:
+            self.Logging = True
+            filename+= "-" + chrono.strftime("%m_%d_%Y_%H%M%S")
+            voltname = filename+"-voltages.tsv"
+            currentname = filename+"-currents.tsv"
+            self.Logger = threading.Thread(target=self.__LogInfo,args=(voltname,currentname,mode))
+            self.Logger.start()
+        else:
+            print(f"[red bold] ALREADY LOGGING CURRENTS IN {self.CurrentFilename} AND VOLTAGES IN {self.VoltageFilename} [/]")
+
+############################################    
+    def StopLogging(self):
+        self.Logging = False
+        self.Logger.join()
+
+############################################    
     def Startup(self):
         print('[magenta]Beginning Startup[/]')
         if self.__GetCrateSysMainStatSTR().upper() == "ON":
@@ -348,13 +394,19 @@ class MPODController:
 
 ############################################
     def __init__(self,IP:str=None):
+        self.Logging = False
         if IP != None:
             self.__SetIP_AND_OpenLockFile(IP)
-            try:
-                fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                self.Startup()
-            except IOError:
-                print(f"[red bold]Another instance of MPOD Controller is already running at the IP Address of[/] [cyan]{IP}[/]")
+            if self.__IsThisAnMPOD(IP):
+                try:
+                    fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    self.Startup()
+                except IOError:
+                    print(f"[red bold]Another instance of MPOD Controller is already running at the IP Address of[/] [cyan]{IP}[/]")
+                    os._exit(1)
+            else:
+                print(f"[red bold]THIS IS NOT AN MPOD!!!!![/]")
+                print(f"[red bold]KICKING YOU OUT OF THE SHELL NOW[/]")
                 os._exit(1)
         else:
             self.ipstatus = {"MPOD" : [], "ACTIVE" : [], "INACTIVE" : []}
@@ -376,6 +428,7 @@ class MPODController:
 
             if len(self.ipstatus['MPOD']) == 0:
                 print('[red bold]NO MPOD FOUND ATTACHED ON THE NETWORK. VERIFY NETWORK SETTINGS[/]')
+                print('[red bold]KICKING YOU OUT OF THE SHELL NOW, BECAUSE THERE ARE NO MPODS ON THE NETWORK[/]')
                 os._exit(1)
             elif len(self.ipstatus['MPOD']) == 1:
                 print(f'[red bold]FOUND ONE MPOD ON THE NETWORK AT IP :[/] [cyan bold]{self.ipstatus["MPOD"][0]}')
@@ -395,6 +448,8 @@ class MPODController:
     def __del__(self):
         fcntl.flock(self.lockfile, fcntl.LOCK_UN)
         self.lockfile.close()
+        if self.Logging:
+            self.StopLogging()
 
 ############################################
     def get_system_status(self):

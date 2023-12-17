@@ -36,6 +36,9 @@ class MTASMPODController(mc.MPODController):
 
     def __init__(self,ip=None):
         super().__init__(ip)
+        self.__uid_pmt_map = {}
+        for pmt,uid in self.__pmt_uid_map.items():
+            self.__uid_pmt_map[uid] = pmt
 
     def get_mod_chan(self,label:str):
         try:
