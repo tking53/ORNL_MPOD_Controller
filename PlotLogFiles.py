@@ -71,3 +71,6 @@ class LogPlotter:
         datatype = [float for name,cnt in self.pmt_map.items()]
         data = np.genfromtxt(filename,names=self.pmtname,dtype=datatype,encoding='utf-8')
         return data
+
+    def save_plot(self,filename:str):
+        self.fig.savefig(filename)
