@@ -19,6 +19,8 @@ import os
 import fcntl
 import arpreq as arp
 
+from datetime import datetime
+
 ############################################
 #                set default values
 # ---------------------------------------------------
@@ -293,6 +295,17 @@ class MPODController:
         else:
             print(f"[bold red]ERROR: UNABLE TO SET ON/OFF ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
 
+############################################
+    def reset_switch(self,mod: int, chan: int):
+        if self.__does_mod_chan_exist(mod,chan):
+            mpodID = self.__GenerateMpodID(mod, chan)
+            retval = pxp.run(self.__MakeSnmpSetCommand('guru') + ' outputSwitch.'+mpodID+' i 2').decode().replace("\r\n","")
+            retval = pxp.run(self.__MakeSnmpSetCommand('guru') + ' outputSwitch.'+mpodID+' i 10').decode().replace("\r\n","")
+            print(f"[bold magenta]MPOD CRATE AT IP[/][cyan]{self.IP}[/][bold magenta] RESETTING MODULE {mod} CHANNEL {chan} [/]")
+        else:
+            print(f"[bold red]ERROR: UNABLE TO RESET ON MODULE {mod} CHANNEL {chan} AS IT DOES NOT EXIST IN MPOD CRATE AT IP[/] [cyan]{self.IP}[/]")
+
+
 ############################################    
     def set_on_off_all(self,onOff):
         for mod in self.modlist:
@@ -365,15 +378,17 @@ class MPODController:
 ############################################    
     def __LogInfo(self):
         while self.Logging:
+            current_datetime = datetime.now()
+            formatted_datetime = current_datetime.strftime("%Y-%m-%d\t%H:%M:%S")
             volts = self.walk_sense_voltage()
             currents = self.walk_sense_current()
-            voltstr = ""
+            voltstr = formatted_datetime+'\t'
             for v in volts:
                 volt = float(v)
                 measurevstr = f'{volt:.2f}\t'
                 voltstr += measurevstr
             self.VoltageLog.error(voltstr)
-            currentstr = ""
+            currentstr = formatted_datetime+'\t'
             for c in currents:
                 current = float(c)
                 measureastr = f'{1000*1000*current:.2f}\t'
@@ -390,10 +405,10 @@ class MPODController:
                 os.makedirs(self.baselogname)
             self.VoltageFilename = filename+"/voltages.tsv"
             self.CurrentFilename = filename+"/currents.tsv"
-            self.VoltageLog = logging.getLogger('Volts') 
+            self.VoltageLog = logging.getLogger('Volts'+self.IP) 
             self.VoltageLogHandler = logging.handlers.TimedRotatingFileHandler(self.VoltageFilename,when='H',interval=1,backupCount=168)
             self.VoltageLog.addHandler(self.VoltageLogHandler)
-            self.CurrentLog = logging.getLogger('Current')
+            self.CurrentLog = logging.getLogger('Current'+self.IP)
             self.CurrentLogHandler = logging.handlers.TimedRotatingFileHandler(self.CurrentFilename,when='H',interval=1,backupCount=168)
             self.CurrentLog.addHandler(self.CurrentLogHandler)
             self.VoltageLog.error("#Voltages are in Volts\n")
