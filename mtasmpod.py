@@ -101,7 +101,7 @@ class MTASMPODController(mc.MPODController):
                     tag = f'{t}{i}B'
                     self.mtas_set_pmt_on_off(tag,onOff)
         else:
-            print(f'[bold red]ERROR: UNKNOWN FRONT/BACK TYPE: {label.upper()}, AVAILABLE TYPES ARE [FRONT,BACK,F,B][/]')
+            print(f'[bold red]ERROR: UNKNOWN FRONT/BACK TYPE: {ring.upper()}, AVAILABLE TYPES ARE [FRONT,BACK,F,B][/]')
 
     def mtas_set_voltage(self,label:str,volt,verbose=True):
         ring = (label.upper())[0]
@@ -165,7 +165,7 @@ class MTASMPODController(mc.MPODController):
                     print(f'[blue]{pmtname: ^{smallColWidth}}[/][white]|{modid: ^{smallColWidth}}|{chanid: ^{smallColWidth}}|{id: ^{smallColWidth}}|[/][green]{status: ^{smallColWidth}}[/][white]|{measurevstr: ^{largeColWidth}}|{setvstr: ^{largeColWidth}}|{measureastr: ^{largeColWidth}}|{setastr: ^{largeColWidth}}|{rampstr: ^{smallColWidth}}[/]')
             
         else:
-            print(f'IP: [cyan]{self.IP}[/] Sofware Switch: [red]OFF[/]')
+            print(f'IP: [cyan]{self.__IP}[/] Sofware Switch: [red]OFF[/]')
 
 
     def mtas_get_voltage(self,label:str,verbose=True):

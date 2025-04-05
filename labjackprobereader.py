@@ -45,7 +45,8 @@ class MTASLABJACKProbeReader:
 ############################################    
     def GetTemp(self,id:int):
         if id < 4:
-            return float(self.LabJack.getFeedback(self.probes[id])[0])*(-0.00498025) + 198.495
+            return float(self.LabJack.getFeedback(self.probes[id])[0])*(22.9583/35246.7)
+            #return float(self.LabJack.getFeedback(self.probes[id])[0])*(-0.00498025) + 198.495
         else:
             print(f"[red bold] LabJack Temp Probe {id} does not exist, they are [0-4)[/]")
             return None

@@ -33,7 +33,7 @@ ylimits = {
         'mtas' : {'fans' : [2000,4000],'temps': [15,50],'currents':[0.0,100],'voltages':[-24,24]},
         'vandle' : {'fans' : [2000,4000],'temps': [5,60],'currents':[0.0,100],'voltages':[-24,24]},
         'mtas-mpod' : {'currents':[0.0,500.0],'voltages':[650,1450]},
-        'mtas-probes' : {'temps' : [15.0,30.0]}
+        'mtas-probes' : {'temps' : [20.0,26.0]}
         }
 
 def transpose_arr(arr):
@@ -125,6 +125,8 @@ def process_logs(key:str,directory:str):
                     fig.savefig(newfilename)
             
             fig.clear()
+            minvals=[]
+            maxvals=[]
             for index, value in enumerate(currlabels):
                 if index % 2 == 0 and index < 12:
                     plt.plot(arr[0],arr[index+1],linewidth=1,label=value)
@@ -132,11 +134,10 @@ def process_logs(key:str,directory:str):
                     fig.gca().xaxis_date()
                     plt.xlabel('Date and Time')
                     plt.ylabel(ylabels[key][valtype])
-                    #plt.ylim(ylimits[key][valtype])
-                    minval = min(arr[index+1])
-                    maxval = max(arr[index+1])
-                    plt.ylim(minval-1.0,maxval+1.0)
+                    minvals.append(min(arr[index+1]))
+                    maxvals.append(max(arr[index+1]))
                     plt.legend()
+            plt.ylim(min(minvals)-1.0,max(maxvals)+1.0)
             root = os.path.dirname(file)
             newfilename=root+"/"+valtype+'-center-front.png'
             fig.savefig(newfilename)
@@ -144,6 +145,8 @@ def process_logs(key:str,directory:str):
             fig.savefig(newfilename)
 
             fig.clear()
+            minvals=[]
+            maxvals=[]
             for index, value in enumerate(currlabels):
                 if index % 2 == 1 and index < 12:
                     plt.plot(arr[0],arr[index+1],linewidth=1,label=value)
@@ -151,11 +154,11 @@ def process_logs(key:str,directory:str):
                     fig.gca().xaxis_date()
                     plt.xlabel('Date and Time')
                     plt.ylabel(ylabels[key][valtype])
-                    #plt.ylim(ylimits[key][valtype])
-                    minval = min(arr[index+1])
-                    maxval = max(arr[index+1])
+                    minvals.append(min(arr[index+1]))
+                    maxvals.append(max(arr[index+1]))
                     plt.ylim(minval-1.0,maxval+1.0)
                     plt.legend()
+            plt.ylim(min(minvals)-1.0,max(maxvals)+1.0)
             root = os.path.dirname(file)
             newfilename=root+"/"+valtype+'-center-back.png'
             fig.savefig(newfilename)
@@ -163,6 +166,8 @@ def process_logs(key:str,directory:str):
             fig.savefig(newfilename)
             
             fig.clear()
+            minvals=[]
+            maxvals=[]
             for index, value in enumerate(currlabels):
                 if index % 2 == 0 and index < 24 and index >= 12:
                     plt.plot(arr[0],arr[index+1],linewidth=1,label=value)
@@ -171,10 +176,10 @@ def process_logs(key:str,directory:str):
                     plt.xlabel('Date and Time')
                     plt.ylabel(ylabels[key][valtype])
                     #plt.ylim(ylimits[key][valtype])
-                    minval = min(arr[index+1])
-                    maxval = max(arr[index+1])
-                    plt.ylim(minval-1.0,maxval+1.0)
+                    minvals.append(min(arr[index+1]))
+                    maxvals.append(max(arr[index+1]))
                     plt.legend()
+            plt.ylim(min(minvals)-1.0,max(maxvals)+1.0)
             root = os.path.dirname(file)
             newfilename=root+"/"+valtype+'-inner-front.png'
             fig.savefig(newfilename)
@@ -182,6 +187,8 @@ def process_logs(key:str,directory:str):
             fig.savefig(newfilename)
 
             fig.clear()
+            minvals=[]
+            maxvals=[]
             for index, value in enumerate(currlabels):
                 if index % 2 == 1 and index < 24 and index >= 12:
                     plt.plot(arr[0],arr[index+1],linewidth=1,label=value)
@@ -190,10 +197,10 @@ def process_logs(key:str,directory:str):
                     plt.xlabel('Date and Time')
                     plt.ylabel(ylabels[key][valtype])
                     #plt.ylim(ylimits[key][valtype])
-                    minval = min(arr[index+1])
-                    maxval = max(arr[index+1])
-                    plt.ylim(minval-1.0,maxval+1.0)
+                    minvals.append(min(arr[index+1]))
+                    maxvals.append(max(arr[index+1]))
                     plt.legend()
+            plt.ylim(min(minvals)-1.0,max(maxvals)+1.0)
             root = os.path.dirname(file)
             newfilename=root+"/"+valtype+'-inner-back.png'
             fig.savefig(newfilename)
@@ -201,6 +208,8 @@ def process_logs(key:str,directory:str):
             fig.savefig(newfilename)
             
             fig.clear()
+            minvals=[]
+            maxvals=[]
             for index, value in enumerate(currlabels):
                 if index % 2 == 0 and index < 36 and index >= 24:
                     plt.plot(arr[0],arr[index+1],linewidth=1,label=value)
@@ -209,10 +218,10 @@ def process_logs(key:str,directory:str):
                     plt.xlabel('Date and Time')
                     plt.ylabel(ylabels[key][valtype])
                     #plt.ylim(ylimits[key][valtype])
-                    minval = min(arr[index+1])
-                    maxval = max(arr[index+1])
-                    plt.ylim(minval-1.0,maxval+1.0)
+                    minvals.append(min(arr[index+1]))
+                    maxvals.append(max(arr[index+1]))
                     plt.legend()
+            plt.ylim(min(minvals)-1.0,max(maxvals)+1.0)
             root = os.path.dirname(file)
             newfilename=root+"/"+valtype+'-middle-front.png'
             fig.savefig(newfilename)
@@ -220,6 +229,8 @@ def process_logs(key:str,directory:str):
             fig.savefig(newfilename)
 
             fig.clear()
+            minvals=[]
+            maxvals=[]
             for index, value in enumerate(currlabels):
                 if index % 2 == 1 and index < 36 and index >= 24:
                     plt.plot(arr[0],arr[index+1],linewidth=1,label=value)
@@ -228,10 +239,11 @@ def process_logs(key:str,directory:str):
                     plt.xlabel('Date and Time')
                     plt.ylabel(ylabels[key][valtype])
                     #plt.ylim(ylimits[key][valtype])
-                    minval = min(arr[index+1])
-                    maxval = max(arr[index+1])
+                    minvals.append(min(arr[index+1]))
+                    maxvals.append(max(arr[index+1]))
                     plt.ylim(minval-1.0,maxval+1.0)
                     plt.legend()
+            plt.ylim(min(minvals)-1.0,max(maxvals)+1.0)
             root = os.path.dirname(file)
             newfilename=root+"/"+valtype+'-middle-back.png'
             fig.savefig(newfilename)
@@ -239,6 +251,8 @@ def process_logs(key:str,directory:str):
             fig.savefig(newfilename)
             
             fig.clear()
+            minvals=[]
+            maxvals=[]
             for index, value in enumerate(currlabels):
                 if index % 2 == 0 and index < 48 and index >= 36:
                     plt.plot(arr[0],arr[index+1],linewidth=1,label=value)
@@ -247,10 +261,11 @@ def process_logs(key:str,directory:str):
                     plt.xlabel('Date and Time')
                     plt.ylabel(ylabels[key][valtype])
                     #plt.ylim(ylimits[key][valtype])
-                    minval = min(arr[index+1])
-                    maxval = max(arr[index+1])
+                    minvals.append(min(arr[index+1]))
+                    maxvals.append(max(arr[index+1]))
                     plt.ylim(minval-1.0,maxval+1.0)
                     plt.legend()
+            plt.ylim(min(minvals)-1.0,max(maxvals)+1.0)
             root = os.path.dirname(file)
             newfilename=root+"/"+valtype+'-outer-front.png'
             fig.savefig(newfilename)
@@ -258,6 +273,8 @@ def process_logs(key:str,directory:str):
             fig.savefig(newfilename)
 
             fig.clear()
+            minvals=[]
+            maxvals=[]
             for index, value in enumerate(currlabels):
                 if index % 2 == 1 and index < 48 and index >= 36:
                     plt.plot(arr[0],arr[index+1],linewidth=1,label=value)
@@ -266,10 +283,11 @@ def process_logs(key:str,directory:str):
                     plt.xlabel('Date and Time')
                     plt.ylabel(ylabels[key][valtype])
                     #plt.ylim(ylimits[key][valtype])
-                    minval = min(arr[index+1])
-                    maxval = max(arr[index+1])
+                    minvals.append(min(arr[index+1]))
+                    maxvals.append(max(arr[index+1]))
                     plt.ylim(minval-1.0,maxval+1.0)
                     plt.legend()
+            plt.ylim(min(minvals)-1.0,max(maxvals)+1.0)
             root = os.path.dirname(file)
             newfilename=root+"/"+valtype+'-outer-back.png'
             fig.savefig(newfilename)
