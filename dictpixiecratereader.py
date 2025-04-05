@@ -213,7 +213,6 @@ class PIXIEFrontReadout:
 
 ############################################
     def __does_fan_exist(self,chan: int):
-        print(self.fanlist)
         if chan in self.fanlist:
             return True
         return False
@@ -263,8 +262,6 @@ class PIXIEFrontReadout:
     def ParseChannelMap(self):
         print('[dark_orange]Parsing out the current channelmap.\nThis will take a second as we\'re polling the mpod to get the current hv parameters[/]')
         self.__chandict = {}
-        self.__chanlist = []
-        self.modlist = []
         self.hvmap = {}
         self.templist = [1,2,3,4,5,6,7,8]
         self.fanlist = [1,2,3]
@@ -451,38 +448,28 @@ class PIXIEFrontReadout:
         largeColWidth=21
         fullColWidth=smallColWidth*3 + largeColWidth*4
         if self.GetCrateSysMainStatSTR().lower() == "on":
-            print(f'IP: [cyan]{self.IP}[/] Software Switch: [green]ON[/] ')
+            airinlet = self.get_air_inlet_temp(False)
+            print(f'IP: [cyan]{self.IP}[/] Software Switch: [green]ON[/], AirInlet:{airinlet} C ')
             if self.Logging:
                 print(f'Logging: [green]{self.Logging}[/] VoltageFile: {self.VoltageFilename} CurrentFile: {self.CurrentFilename}')
             else:
                 print(f'Logging: [red]{self.Logging}[/]')
-            print(f'[underline]{"[MODULEID]": ^{smallColWidth}}|{"[CHANID]": ^{smallColWidth}}|{"[CHAN]": ^{smallColWidth}}|{"[STATUS]": ^{smallColWidth}}|{"[MEASURED VOLTAGE]": ^{largeColWidth}}|{"[SET VOLTAGE]": ^{largeColWidth}}|{"[MEASURED CURRENT]" : ^{largeColWidth}}|{"[CURRENT TRIP]": ^{largeColWidth}}|{"[RAMP]": ^{smallColWidth}}[/]')
 
-            firstmodid = self.modlist[0]
-            for id,map in self.hvmap.items():
-                modid = map['modid']
-                chanid = map['chanid']
-                status = map['state']
-                setv = map['voltage']
-                seta = map['current']
-                
-                measurev,measurea  = self.get_sense_voltage_current(modid,chanid)
-
-                measurevstr = f'{measurev:.2f} V'
-                setvstr = f'{setv:.2f} V'
-
-                mu = chr(956)
-                newline = '-'
-                measureastr = f'{measurea:.2f} {mu}A'
-                setastr = f'{seta:.2f} {mu}A'
-                if modid != firstmodid:
-                    firstmodid = modid
-                    print(newline*(5*smallColWidth + 3*largeColWidth + 28))
-
-                if status == 'OFF':
-                    print(f'[white]{modid: ^{smallColWidth}}|{chanid: ^{smallColWidth}}|{id: ^{smallColWidth}}|[/][red]{status: ^{smallColWidth}}[/][white]|{measurevstr: ^{largeColWidth}}|{setvstr: ^{largeColWidth}}|{measureastr: ^{largeColWidth}}|{setastr: ^{largeColWidth}}[/]')
-                else:
-                    print(f'[white]{modid: ^{smallColWidth}}|{chanid: ^{smallColWidth}}|{id: ^{smallColWidth}}|[/][green]{status: ^{smallColWidth}}[/][white]|{measurevstr: ^{largeColWidth}}|{setvstr: ^{largeColWidth}}|{measureastr: ^{largeColWidth}}|{setastr: ^{largeColWidth}}[/]')
-            
+            print(f'[underline]{"[FANID]": ^{smallColWidth}}|{"[RPM]": ^{smallColWidth}}|{"[TEMPID]": ^{smallColWidth}}|{"[C]": ^{smallColWidth}}|[/]')
+            ziplist = []
+            for i,a in enumerate(self.templist):
+                ziplist.append((self.fanlist[i%len(self.fanlist)],a))
+            tmp = []
+            for fanid,tempid in ziplist:
+                    tmp.append(fanid)
+                    dash="-"
+                    currrpm = self.get_fan_speed(fanid,False);
+                    currtemp = self.get_sensor_temp(tempid,False)
+                    if( currtemp == -128 ):
+                        currtemp = "-"
+                    if( len(tmp) > len(self.fanlist) ): 
+                        print(f'[white]{dash:^{smallColWidth}}|{dash: ^{smallColWidth}}|{tempid: ^{smallColWidth}}|{currtemp: ^{smallColWidth}}|[/]')
+                    else:
+                        print(f'[white]{fanid: ^{smallColWidth}}|{currrpm: ^{smallColWidth}}|{tempid: ^{smallColWidth}}|{currtemp: ^{smallColWidth}}|[/]')
         else:
             print(f'IP: [cyan]{self.IP}[/] Sofware Switch: [red]OFF[/]')
