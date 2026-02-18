@@ -430,12 +430,17 @@ class MPODController:
         print('[magenta]Beginning Startup[/]')
         if self.GetCrateSysMainStatSTR().upper() == "ON":
             print("[magenta]The crate software switch is on[/]")
-            self.ParseChannelMap()
+            try:
+                self.ParseChannelMap()
+            except  (ValueError, IndexError, TypeError, AttributeError) as e:
+                print(f"[bold red]ERROR DURING PARSING OF CHANNEL MAP. LIKELY A COMMUNICATION ERROR WITH THE CRATE[/]")
+                print("[bold red]CHECK WEBPAGE FOR CRATE STATUS, TRY COLDBOOT MODE[/]")
+                os._exit(1)
         else:
             print("[bold red]The crate software switch is off[/]")
 
 ############################################
-    def __init__(self,IP:str=None):
+    def __init__(self,IP:str=None,COLDBOOT:bool=False):
         self.Logging = False
         if IP != None:
             self.__SetIP_AND_OpenLockFile(IP)
@@ -443,6 +448,10 @@ class MPODController:
             if self.__IsThisAnMPOD(IP):
                 try:
                     fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    if COLDBOOT == True:
+                            print("[red bold]COLD BOOT ACTIVATED - CYCLING CRATE SWITCH TO RELOAD MODULES[/]")
+                            self.SetCrateSwitch(0)
+                            self.SetCrateSwitch(1)
                     self.Startup()
                 except IOError:
                     print(f"[red bold]Another instance of MPOD Controller is already running at the IP Address of[/] [cyan]{IP}[/]")
