@@ -451,6 +451,7 @@ class MPODController:
                     if COLDBOOT == True:
                             print("[red bold]COLD BOOT ACTIVATED - CYCLING CRATE SWITCH TO RELOAD MODULES[/]")
                             self.SetCrateSwitch(0)
+                            chrono.sleep(3)
                             self.SetCrateSwitch(1)
                     self.Startup()
                 except IOError:
